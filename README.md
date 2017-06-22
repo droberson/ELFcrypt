@@ -135,6 +135,6 @@ Disassembly of section .crypted:
 ```
 
 
-As you can see, the secong binary contains a bunch of nonsensical rubbish
-instead of readable assembler.
+As you can see, the second binary contains a bunch of nonsensical rubbish
+instead of readable assembler in the .crypted section.
 
