@@ -142,7 +142,9 @@ int ELFcrypt(const char *filename, const char *outfile, const unsigned char *key
     exit(EXIT_FAILURE);
   }
 
-  /* store offset and size of .crypted section for future reference */
+  /* store offset and size of .crypted section for future reference.
+   * the e_ident[EI_PAD] section provides a conveinient 7 byte section
+   * to store these values in the ELF header*/
   *((int *)(program + 0x09)) = crypted->sh_offset;
   *((short *)(program + 0x0d)) = crypted->sh_size;
 
