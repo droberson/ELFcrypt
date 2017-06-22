@@ -80,3 +80,61 @@ input for the password:
 % ELFCRYPT="harharhar" ./crypted
 This function was crypted
 ```
+
+
+## objdump before/after
+
+Before:
+```
+% objdump -dj .crypted example 
+
+example:     file format elf64-x86-64
+
+
+Disassembly of section .crypted:
+
+0000000000401022 <crypted_main>:
+  401022:	55                   	push   %rbp
+  401023:	48 89 e5             	mov    %rsp,%rbp
+  401026:	48 83 ec 10          	sub    $0x10,%rsp
+  40102a:	89 7d fc             	mov    %edi,-0x4(%rbp)
+  40102d:	48 89 75 f0          	mov    %rsi,-0x10(%rbp)
+  401031:	bf ec 10 40 00       	mov    $0x4010ec,%edi
+  401036:	e8 b5 f7 ff ff       	callq  4007f0 <puts@plt>
+  40103b:	b8 64 00 00 00       	mov    $0x64,%eax
+  401040:	c9                   	leaveq 
+  401041:	c3                   	retq   
+```
+
+After:
+```
+% objdump -dj .crypted crypted
+
+crypted:     file format elf64-x86-64
+
+
+Disassembly of section .crypted:
+
+0000000000401022 <crypted_main>:
+  401022:	68 ac 6c f3 e5       	pushq  $0xffffffffe5f36cac
+  401027:	6d                   	insl   (%dx),%es:(%rdi)
+  401028:	91                   	xchg   %eax,%ecx
+  401029:	59                   	pop    %rcx
+  40102a:	d2 7b 05             	sarb   %cl,0x5(%rbx)
+  40102d:	6e                   	outsb  %ds:(%rsi),(%dx)
+  40102e:	20 3c 38             	and    %bh,(%rax,%rdi,1)
+  401031:	74 05                	je     401038 <crypted_main+0x16>
+  401033:	54                   	push   %rsp
+  401034:	13 d6                	adc    %esi,%edx
+  401036:	2c 31                	sub    $0x31,%al
+  401038:	18 99 4c 46 5f 38    	sbb    %bl,0x385f464c(%rcx)
+  40103e:	ad                   	lods   %ds:(%rsi),%eax
+  40103f:	e3 bb                	jrcxz  400ffc <__libc_csu_init+0x4c>
+	...
+
+```
+
+
+As you can see, the secong binary contains a bunch of nonsensical rubbish
+instead of readable assembler.
+
