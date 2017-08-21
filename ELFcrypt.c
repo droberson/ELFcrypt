@@ -108,7 +108,7 @@ int ELFcrypt(const char *filename, const char *outfile, const unsigned char *key
   }
 
   output = open(outfile, O_WRONLY | O_CREAT, 0755);
-  if (fd == -1) {
+  if (output == -1) {
     fprintf(stderr, "Failed to open output file %s: %s\n",
 	    outfile,
 	    strerror(errno));
