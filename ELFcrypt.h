@@ -19,19 +19,19 @@ char *get_password() {
       printf("Passwords do not match\n");
       sleep(3);
     }
-    
+
     if ((key = getpass("Enter passphrase: ")) == NULL) {
       printf("Bad password.\n");
       continue;
     }
-    
+
     strncpy(keyconfirm, key, sizeof(keyconfirm));
 
     if ((key = getpass("Confirm passphrase: ")) == NULL) {
       printf("Bad password.\n");
       continue;
     }
-    
+
     i = 1;
   } while (strcmp(key, keyconfirm));
 
