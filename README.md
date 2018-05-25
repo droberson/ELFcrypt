@@ -141,7 +141,7 @@ gcc -Wall -o ELFcrypt ELFcrypt.c
 gcc -Wall -o ELFcrypt2 ELFcrypt2.c
 gcc -Wall -o ELFcrypt2-stub ELFcrypt2-stub.c
 gcc -Wall -o example example.c
-daniel@stingray ~/ELFcrypt % ./ELFcrypt2 /bin/ls out
+ ~/ELFcrypt % ./ELFcrypt2 /bin/ls out
 ELFcrypt2 by @dmfroberson
 Enter passphrase: danger
 Confirm passphrase: danger
