@@ -2,109 +2,113 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
+#include <stdarg.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
 #include <errno.h>
 
 #include "ELFcrypt.h"
 
 
-/* Globals */
-unsigned char *key;
-char *outfile = "crypted";
+/* Global variables */
+unsigned char   *key;
+char            *outfile = "crypted";
 
 
-/* ELFcrypt()
+/* fatal() -- Prints a message and exits with EXIT_FAILURE
+ *
+ * Args:
+ *     fmt - va_args-style format strings (like printf)
+ *
+ * Returns:
+ *     Nothing.
  */
-int ELFcrypt(const char *filename, const char *outfile, const unsigned char *key) {
-  int fd;
-  int output;
-  size_t filesize;
-  void *program;
-  Elf64_Shdr *crypted;
+void fatal(char *fmt, ...) {
+  va_list       ap;
+
+  va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  va_end(ap);
+
+  exit(EXIT_FAILURE);
+}
 
 
-  /* calculate file size */
-  filesize = get_file_size(filename);
-  if (filesize == -1) {
-    fprintf(stderr, "Exiting.\n");
-    exit(EXIT_FAILURE);
-  }
+/* ELFcrypt() -- Encrypts ELF file, writing encrypted results to an output file.
+ *
+ * Args:
+ *     in  - Path to input ELF file.
+ *     out - Path to output crypted ELF file.
+ *     key - RC4 key to encrypt input file with.
+ *
+ * Returns:
+ *    Nothing.
+ */
+void ELFcrypt(const char *in, const char *out, const unsigned char *key) {
+  int           fd;
+  int           output;
+  size_t        filesize;
+  void          *program;
+  Elf64_Shdr    *crypted;
 
-  /* open input and output files */
-  fd = open(filename, O_RDONLY);
-  if (fd == -1) {
-    fprintf(stderr, "Failed to open input file %s: %s\n",
-	    filename,
-	    strerror(errno));
-    fprintf(stderr, "Exiting.\n");
 
-    exit(EXIT_FAILURE);
-  }
+  /* Calculate file size */
+  filesize = get_file_size(in);
+  if (filesize == -1)
+    fatal("Unable to calculate size of input file %s\n", in);
 
-  output = open(outfile, O_WRONLY | O_CREAT, 0755);
-  if (output == -1) {
-    fprintf(stderr, "Failed to open output file %s: %s\n",
-	    outfile,
-	    strerror(errno));
-    fprintf(stderr, "Exiting.\n");
+  /* Open input and output files */
+  fd = open(in, O_RDONLY);
+  if (fd == -1)
+    fatal("Failed to open input file %s: %s\n", in, strerror(errno));
 
-    exit(EXIT_FAILURE);
-  }
+  output = open(out, O_WRONLY | O_CREAT, 0755);
+  if (output == -1)
+    fatal("Failed to open output file %s: %s\n", out, strerror(errno));
 
-  /* mmap ELF */
+  /* mmap input file */
   program = mmap(0, filesize, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-  if (program == MAP_FAILED) {
-    fprintf(stderr, "Unable to mmap %s: %s\n", filename, strerror(errno));
-    exit(EXIT_FAILURE);
-  }
+  if (program == MAP_FAILED)
+    fatal("Unable to mmap %s: %s\n", in, strerror(errno));
 
   /* Get .crypted section of ELF file */
   crypted = get_elf_section(program, ".crypted");
   if (crypted == NULL) {
-    fprintf(stderr, "No .crypted section found in %s\n", filename);
-    fprintf(stderr, "Exiting.\n");
-
-    unlink(outfile);
-
-    exit(EXIT_FAILURE);
+    unlink(out);
+    fatal("No .crypted section found in %s\n", in);
   }
 
-  /* encrypt .crypted section using key */
-  key = (unsigned char *)get_password();
+  /* Encrypt .crypted section using 'key' */
+  if (rc4(program + crypted->sh_offset, crypted->sh_size, (unsigned char *)key) == 1)
+    fatal("Failed to encrypt input file %s\n", in);
 
-  if (rc4(program + crypted->sh_offset, crypted->sh_size, (unsigned char *)key) == 1) {
-    fprintf(stderr, "Exiting.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  /* store offset and size of .crypted section for future reference.
-   * the e_ident[EI_PAD] section provides a conveinient 7 byte section
-   * to store these values in the ELF header*/
+  /* Store offset and size of .crypted section for future reference. These
+   * values will be used later by the ELFdecrypt() function. The
+   * e_ident[EI_PAD] section provides a conveinient 7 byte location to store
+   * these values in the ELF header.
+   */
   *((int *)(program + 0x09)) = crypted->sh_offset;
   *((short *)(program + 0x0d)) = crypted->sh_size;
 
-  /* write outfile */
-  if (write(output, program, filesize) != filesize) {
-    fprintf(stderr, "Failed to write %ld bytes to %s: %s\n",
-	    filesize,
-	    outfile,
-	    strerror(errno));
-    fprintf(stderr, "Exiting.\n");
+  /* Write outfile */
+  if (write(output, program, filesize) != filesize)
+    fatal("Failed to write to output file %s: %s\n", out, strerror(errno));
 
-    exit(EXIT_FAILURE);
-  }
-
-  /* cleanup */
+  /* Close file descriptors. Skipped munmap() because this happens
+   * automatically when the program exits.
+   */
   close(fd);
   close(output);
-
-  return EXIT_SUCCESS;
 }
 
-/* usage()
+
+/* usage() -- Prints help menu and exits.
+ *
+ * Args:
+ *     progname - String containing the name of the program.
+ *
+ * Returns:
+ *     Nothing.
  */
 void usage(const char *progname) {
   fprintf(stderr, "usage: %s <program> [-o <outfile>] [-h?]\n", progname);
@@ -117,10 +121,9 @@ void usage(const char *progname) {
 /* main()
  */
 int main(int argc, char *argv[]) {
-  int ch;
-  char *progname;
+  int       ch;
+  char      *progname = argv[0];
 
-  progname = argv[0];
 
   printf("ELFcrypt by @dmfroberson\n\n");
 
@@ -140,16 +143,17 @@ int main(int argc, char *argv[]) {
   argc -= optind;
   argv += optind;
 
-  /* check for required argument */
-  if (!argv[0]) {
+  /* Check for required infile argument */
+  if (!argv[0])
     usage(progname);
-  }
 
   printf("Crypting .crypted section of %s, outputting to %s\n\n",
 	 argv[0],
 	 outfile);
 
+  key = (unsigned char *)get_password();
   ELFcrypt(argv[0], outfile, key);
 
   return EXIT_SUCCESS;
 }
+
