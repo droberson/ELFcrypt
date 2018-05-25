@@ -46,7 +46,10 @@ int main(int argc, char *argv[], char *envp[]) {
   program += offset;
 
   /* Attempt to decrypt the ELF using the key supplied by the user */
-  key = (unsigned char *)getpass("Enter passphrase: ");
+  key = (unsigned char *)getenv("ELFCRYPT");
+  if (key == NULL)
+    key = (unsigned char *)getpass("Enter passphrase: ");
+
   if (rc4(program, filesize - offset, key) == 1)
     return EXIT_FAILURE;
 
