@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <elf.h>
-#include <fcntl.h>
 #include <sys/syscall.h>
 
 #include "ELFcrypt.h"
@@ -8,41 +6,6 @@
 
 static inline int memfd_create(const char *name, unsigned int flags) {
   return syscall(__NR_memfd_create, name, flags);
-}
-
-/* get_elf_size() -- returns length of ELF data for a file.
- *
- * TODO: validate ELF file
- *       figure out actual header size of ELF (malloc)
- */
-size_t get_elf_size(const char *progname) {
-  int fd;
-  void *ELFheaderdata;
-  Elf64_Ehdr *ELFheader;
-  size_t elfsize;
-
-
-  ELFheaderdata = malloc(64);
-
-  fd = open(progname, O_RDONLY);
-  if (fd == -1) {
-    fprintf(stderr, "Failed to open input file %s: %s\n",
-            progname,
-            strerror(errno));
-    fprintf(stderr, "Exiting.\n");
-
-    exit(EXIT_FAILURE);
-  }
-
-  read(fd, ELFheaderdata, 64);
-  ELFheader = (Elf64_Ehdr *)ELFheaderdata;
-
-  elfsize = ELFheader->e_shoff + (ELFheader->e_shnum * ELFheader->e_shentsize);
-
-  close(fd);
-  free(ELFheaderdata);
-
-  return elfsize;
 }
 
 
@@ -87,7 +50,9 @@ int main(int argc, char *argv[], char *envp[]) {
   fd = memfd_create("asdf", 1);
 
   if (write(fd, program, filesize - offset) != filesize - offset) {
-    fprintf(stderr, "Failed to write %ld bytes: %s\n", filesize - offset, strerror(errno));
+    fprintf(stderr, "Failed to write %ld bytes: %s\n",
+      filesize - offset,
+      strerror(errno));
     exit(EXIT_FAILURE);
   }
 
