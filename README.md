@@ -46,10 +46,7 @@ hhh+mhhyssNNddhsdhNNNNNNNNNNy............-sNNmNmmNNNdshyNNmmddmNNN
 hsNddNdMMNMNmhdmmNdNNNNNNNNNNNs-......``..-yNNNNdmmhoNNNNNmmNNNNNN
 ```
 
-## How to Use
-
-Quickstart:
-
+## Version 1 Quick Start
 ```
 % make
 gcc -Wall -o ELFcrypt ELFcrypt.c
@@ -81,9 +78,7 @@ input for the password:
 This function was crypted
 ```
 
-
 ## objdump before/after
-
 Before:
 ```
 % objdump -dj .crypted example 
@@ -137,4 +132,42 @@ Disassembly of section .crypted:
 
 As you can see, the second binary contains a bunch of nonsensical rubbish
 instead of readable assembler in the .crypted section.
+
+
+## Quickstart Version 2
+```
+ ~/ELFcrypt % make
+gcc -Wall -o ELFcrypt ELFcrypt.c
+gcc -Wall -o ELFcrypt2 ELFcrypt2.c
+gcc -Wall -o ELFcrypt2-stub ELFcrypt2-stub.c
+gcc -Wall -o example example.c
+daniel@stingray ~/ELFcrypt % ./ELFcrypt2 /bin/ls out
+ELFcrypt2 by @dmfroberson
+Enter passphrase: danger
+Confirm passphrase: danger
+ ~/ELFcrypt % cat ELFcrypt2-stub out >crypted
+ ~/ELFcrypt % chmod +x crypted
+ ~/ELFcrypt % ./crypted 
+Enter passphrase: danger
+Confirm passphrase: danger
+crypted    ELFcrypt2.c	     ELFcrypt.c  example.c   out
+ELFcrypt   ELFcrypt2-stub    ELFcrypt.h  LICENSE.md  README.md
+ELFcrypt2  ELFcrypt2-stub.c  example	 Makefile
+```
+
+Check out what _objdump_ looks like after this process. You will be
+greeted with a copious amount of random assembler instructions that
+no sense at all.
+
+To use on different programs, run them through ELFcrypt2, then use cat
+as outlined above to create the binary.
+
+This might not work right on older Linux systems that do not have the
+memfd_create() function. This can be worked around by modifying the
+code to create temporary files rather than utilizing this function.
+Maybe one day I will care enough to fix this.
+
+Also, the contents of your crypted executable are vulnerable to memory
+dumps while it is running. This simply provides a layer of protection
+for your stuff while it is relaxing on a hostile disk drive.
 
