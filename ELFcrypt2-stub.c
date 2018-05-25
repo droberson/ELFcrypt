@@ -30,6 +30,8 @@ int main(int argc, char *argv[], char *envp[]) {
 
   /* Calculate size of the stub */
   offset = get_elf_size(argv[0]);
+  if (offset == -1)
+    return EXIT_FAILURE;
 
   /* Open stub + encrypted ELF for reading, then mmap() it */
   in = open(argv[0], O_RDONLY);
