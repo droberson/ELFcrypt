@@ -1,12 +1,77 @@
+#include <elf.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/mman.h>
 
 #define ENTRY ((unsigned char *)0x400000)
 #define CRYPTED __attribute__((section(".crypted")))
+
+
+/* is_valid_elf() -- returns 0 if ELF header is valid, 1 if not
+ */
+int is_valid_elf(Elf64_Ehdr *header) {
+  if (!header)
+    return 1;
+
+  if (header->e_ident[EI_MAG0] != ELFMAG0 ||
+      header->e_ident[EI_MAG1] != ELFMAG1 ||
+      header->e_ident[EI_MAG2] != ELFMAG2 ||
+      header->e_ident[EI_MAG3] != ELFMAG3)
+    return 1;
+
+  return 0;
+}
+
+
+/* get_elf_section()
+ */
+Elf64_Shdr *get_elf_section(void *data, const char *section) {
+  int i;
+  char *offset;
+
+  /* Populate ELF headers and section headers from mmapped file */
+  Elf64_Ehdr *ELFheader = (Elf64_Ehdr *)data;
+  Elf64_Shdr *sectionheader = (Elf64_Shdr *)(data + ELFheader->e_shoff);
+  Elf64_Shdr *next = &sectionheader[ELFheader->e_shstrndx];
+
+  /* Make sure this is a valid ELF before proceeding */
+  if (is_valid_elf(ELFheader) == 1) {
+    fprintf(stderr, "Input file is not a valid ELF file.\n");
+    fprintf(stderr, "Exiting.\n");
+
+    exit(EXIT_FAILURE);
+  }
+
+  offset = data + next->sh_offset;
+
+  /* Search for "section" and return address of matching section header */
+  for (i = 0; i < ELFheader->e_shnum; i++) {
+    if (!strcmp((char *)offset + sectionheader[i].sh_name, section)) {
+      return &sectionheader[i];
+    }
+  }
+
+  return NULL;
+}
+
+
+/* get_file_size() -- returns size of file in bytes
+ */
+size_t get_file_size(const char *filename) {
+  struct stat s;
+
+  if (stat(filename, &s) == -1) {
+    fprintf(stderr, "Failed to stat file %s: %s\n", filename, strerror(errno));
+    return -1;
+  }
+
+  return s.st_size;
+}
 
 
 char *get_password() {
