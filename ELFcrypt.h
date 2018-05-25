@@ -220,7 +220,7 @@ void ELFdecrypt() {
 
   key = getenv("ELFCRYPT");
   if (key == NULL)
-    key = get_password();
+    key = getpass("Enter passphrase: ");
 
   /* retrieve crypted section offset and size stored by ELFcrypt */
   crypted_section = *((int *)(ENTRY + 0x09));
