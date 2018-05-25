@@ -50,7 +50,7 @@ int main(int argc, char *argv[], char *envp[]) {
 
   /* Some operating systems may not supply this function. This has only
    * been tested on modern Linux distributions (as of 2018). Alternatively,
-   * you may be able to modify this to utilize a temporary file. We use the
+   * you can modify this to utilize a temporary file or shm_open(). We use the
    * memfd_create() system call here to avoid writes to the disk.
    */
   fd = memfd_create("asdf", 1);
