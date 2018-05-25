@@ -2,7 +2,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <errno.h>
@@ -13,25 +12,6 @@
 /* Global variables */
 unsigned char   *key;
 char            *outfile = "crypted";
-
-
-/* fatal() -- Prints a message and exits with EXIT_FAILURE
- *
- * Args:
- *     fmt - va_args-style format strings (like printf)
- *
- * Returns:
- *     Nothing.
- */
-void fatal(char *fmt, ...) {
-  va_list       ap;
-
-  va_start(ap, fmt);
-  vfprintf(stderr, fmt, ap);
-  va_end(ap);
-
-  exit(EXIT_FAILURE);
-}
 
 
 /* ELFcrypt() -- Encrypts ELF file, writing encrypted results to an output file.

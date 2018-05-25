@@ -1,6 +1,7 @@
 #include <elf.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -11,6 +12,25 @@
 
 #define ENTRY ((unsigned char *)0x400000)
 #define CRYPTED __attribute__((section(".crypted")))
+
+
+/* fatal() -- Prints a message and exits with EXIT_FAILURE
+ *
+ * Args:
+ *     fmt - va_args-style format strings (like printf)
+ *
+ * Returns:
+ *     Nothing.
+ */
+void fatal(char *fmt, ...) {
+  va_list       ap;
+
+  va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  va_end(ap);
+
+  exit(EXIT_FAILURE);
+}
 
 
 /* get_elf_size() -- returns length of ELF data for a file.
