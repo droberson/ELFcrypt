@@ -1,4 +1,5 @@
 #include <elf.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -10,6 +11,42 @@
 
 #define ENTRY ((unsigned char *)0x400000)
 #define CRYPTED __attribute__((section(".crypted")))
+
+
+/* get_elf_size() -- returns length of ELF data for a file.
+ *
+ * TODO: validate ELF file
+ *       figure out actual header size of ELF (malloc)
+ */
+size_t get_elf_size(const char *progname) {
+  int fd;
+  void *ELFheaderdata;
+  Elf64_Ehdr *ELFheader;
+  size_t elfsize;
+
+
+  ELFheaderdata = malloc(64);
+
+  fd = open(progname, O_RDONLY);
+  if (fd == -1) {
+    fprintf(stderr, "Failed to open input file %s: %s\n",
+            progname,
+            strerror(errno));
+    fprintf(stderr, "Exiting.\n");
+
+    exit(EXIT_FAILURE);
+  }
+
+  read(fd, ELFheaderdata, 64);
+  ELFheader = (Elf64_Ehdr *)ELFheaderdata;
+
+  elfsize = ELFheader->e_shoff + (ELFheader->e_shnum * ELFheader->e_shentsize);
+
+  close(fd);
+  free(ELFheaderdata);
+
+  return elfsize;
+}
 
 
 /* is_valid_elf() -- returns 0 if ELF header is valid, 1 if not
