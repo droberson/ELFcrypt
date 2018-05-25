@@ -155,9 +155,9 @@ ELFcrypt   ELFcrypt2-stub    ELFcrypt.h  LICENSE.md  README.md
 ELFcrypt2  ELFcrypt2-stub.c  example	 Makefile
 ```
 
-Check out what _objdump_ looks like after this process. You will be
-greeted with a copious amount of random assembler instructions that
-no sense at all.
+ELFcrypt2 creates a stub program that reads whatever data resides beyond
+the end of its own valid ELF, decrypts this data memory, and finally
+executes it in memory by means of fexecve()
 
 To use on different programs, run them through ELFcrypt2, then use cat
 as outlined above to create the binary.
