@@ -1,4 +1,8 @@
 ELFcrypt
+ELFcrypt2
+ELFcrypt2-stub
 example
 crypted
 TAGS
+*.swp
+*~
