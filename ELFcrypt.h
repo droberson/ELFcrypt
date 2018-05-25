@@ -262,6 +262,9 @@ int rc4(unsigned char *data, size_t size, const unsigned char *key) {
  *
  * Returns:
  *     Nothing
+ *
+ * Note: if the ELFCRYPT environment variable is set, this will attempt to use
+ * its contents as the encryption key.
  */
 void ELFdecrypt() {
   int           section_length;
