@@ -258,7 +258,8 @@ int rc4(unsigned char *data, size_t size, const unsigned char *key) {
 /* ELFdecrypt() -- Decrypt .crypted section of ELF file.
  *
  * Args:
- *     None
+ *     pass - If desired, pass the key in here. This is not very secure,
+ *            but provides some obfuscation.
  *
  * Returns:
  *     Nothing
@@ -266,7 +267,7 @@ int rc4(unsigned char *data, size_t size, const unsigned char *key) {
  * Note: if the ELFCRYPT environment variable is set, this will attempt to use
  * its contents as the encryption key.
  */
-void ELFdecrypt() {
+void ELFdecrypt(char *pass) {
   int           section_length;
   int           crypted_section;
   char          *key;
@@ -277,9 +278,16 @@ void ELFdecrypt() {
   int           size;
 
 
-  key = getenv("ELFCRYPT");
-  if (key == NULL)
-    key = getpass("Enter passphrase: ");
+  if (pass == NULL) {
+    key = getenv("ELFCRYPT");
+    if (key == NULL) {
+      key = getpass("Enter passphrase: ");
+    } else {
+      unsetenv("ELFCRYPT");
+    }
+  } else {
+    key = strdup(pass);
+  }
 
   /* Retrieve crypted section offset and size stored by ELFcrypt */
   crypted_section = *((int *)(ENTRY + 0x09));
