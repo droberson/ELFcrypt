@@ -10,8 +10,8 @@
 
 
 /* Global variables */
-unsigned char   *key;
-char            *outfile = "crypted";
+unsigned char   *key		= NULL;
+char            *outfile	= "crypted";
 
 
 /* ELFcrypt() -- Encrypts ELF file, writing encrypted results to an output file.
@@ -91,8 +91,9 @@ void ELFcrypt(const char *in, const char *out, const unsigned char *key) {
  *     Nothing.
  */
 void usage(const char *progname) {
-  fprintf(stderr, "usage: %s <program> [-o <outfile>] [-h?]\n", progname);
+  fprintf(stderr, "usage: %s <program> [-o <outfile>] [-k <key>] [-h?]\n", progname);
   fprintf(stderr, "  -o <outfile> -- final resting place of crypted output. Default: %s\n", outfile);
+  fprintf(stderr, "  -k <key>     -- key to crypt ELF with. (bypasses getpass() routine)\n");
 
   exit(EXIT_FAILURE);
 }
@@ -107,10 +108,13 @@ int main(int argc, char *argv[]) {
 
   printf("ELFcrypt by @dmfroberson\n\n");
 
-  while((ch = getopt(argc, argv, "o:h?")) != -1) {
+  while((ch = getopt(argc, argv, "o:k:h?")) != -1) {
     switch(ch) {
     case 'o':
       outfile = optarg;
+      break;
+    case 'k':
+      key = optarg;
       break;
     case '?':
     case 'h':
@@ -131,9 +135,10 @@ int main(int argc, char *argv[]) {
 	 argv[0],
 	 outfile);
 
-  key = (unsigned char *)get_password();
+  if (key == NULL)
+    key = (unsigned char *)get_password();
+
   ELFcrypt(argv[0], outfile, key);
 
   return EXIT_SUCCESS;
 }
-
