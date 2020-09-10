@@ -78,6 +78,7 @@ size_t get_elf_size(const char *progname) {
 
   fd = open(progname, O_RDONLY);
   if (fd == -1) {
+    free(ELFheaderdata);
     errno = ENOENT;
     return -1;
   }
